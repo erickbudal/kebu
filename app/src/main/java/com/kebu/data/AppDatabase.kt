@@ -34,10 +34,10 @@ abstract class AppDatabase : RoomDatabase() {
             Room.databaseBuilder(context, AppDatabase::class.java, "expenses.db")
                 .addMigrations(MIGRATION_1_2)
                 .addCallback(object : Callback() {
-                    override fun onCreate(db: SupportSQLiteDatabase) {
-                        super.onCreate(db)
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
                         DEFAULT_TAGS.forEach { name ->
-                            db.execSQL("INSERT INTO tag (name) VALUES (?)", arrayOf<Any>(name))
+                            db.execSQL("INSERT OR IGNORE INTO tag (name) VALUES (?)", arrayOf<Any>(name))
                         }
                     }
                 })
@@ -50,7 +50,9 @@ private val DEFAULT_TAGS = listOf(
     "garten",
     "mueller",
     "bistek",
-    "concurso"
+    "concurso",
+    "beach tennis",
+    "her"
 )
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
