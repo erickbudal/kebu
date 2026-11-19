@@ -1,10 +1,12 @@
 package com.kebu.data
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
+import android.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -30,17 +32,18 @@ class DatabaseBackup(
     }
 
     suspend fun createDailyBackup(): String {
-        val today = LocalDate.now()
-        val fileName = createBackup()
+        val now = LocalDateTime.now()
+        val fileName = createBackup(now)
         withContext(Dispatchers.IO) {
-            prefs.edit(commit = true) { putString(KEY_LAST_DAILY_BACKUP, today.toString()) }
+            prefs.edit(commit = true) { putString(KEY_LAST_DAILY_BACKUP, now.toLocalDate().toString()) }
         }
+        deleteBackupsFromOtherDays(now.toLocalDate())
         return fileName
     }
 
-    suspend fun createBackup(): String = mutex.withLock {
+    suspend fun createBackup(now: LocalDateTime = LocalDateTime.now()): String = mutex.withLock {
         withContext(Dispatchers.IO) {
-            val fileName = "kebu_backup_${LocalDateTime.now().format(FILE_TIMESTAMP)}.db"
+            val fileName = "$FILE_PREFIX${now.format(FILE_TIMESTAMP)}$FILE_EXTENSION"
             val snapshot = File(context.cacheDir, SNAPSHOT_FILE_NAME)
             snapshot.delete()
             try {
@@ -50,6 +53,36 @@ class DatabaseBackup(
                 snapshot.delete()
             }
             fileName
+        }
+    }
+
+    private suspend fun deleteBackupsFromOtherDays(day: LocalDate) {
+        mutex.withLock {
+            withContext(Dispatchers.IO) {
+                try {
+                    val resolver = context.contentResolver
+                    val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                    val keepPrefix = "$FILE_PREFIX$day"
+                    resolver.query(
+                        collection,
+                        arrayOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME),
+                        "${MediaStore.MediaColumns.RELATIVE_PATH} = ? AND ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?",
+                        arrayOf("${Environment.DIRECTORY_DOWNLOADS}/", "$FILE_PREFIX%$FILE_EXTENSION"),
+                        null,
+                    )?.use { cursor ->
+                        val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                        val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+                        while (cursor.moveToNext()) {
+                            val name = cursor.getString(nameColumn) ?: continue
+                            if (name.startsWith(FILE_PREFIX) && !name.startsWith(keepPrefix)) {
+                                resolver.delete(ContentUris.withAppendedId(collection, cursor.getLong(idColumn)), null, null)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Não deu para apagar os backups de outros dias", e)
+                }
+            }
         }
     }
 
@@ -80,6 +113,9 @@ class DatabaseBackup(
     }
 
     private companion object {
+        const val TAG = "DatabaseBackup"
+        const val FILE_PREFIX = "kebu_backup_"
+        const val FILE_EXTENSION = ".db"
         const val PREFS_NAME = "database_backup"
         const val KEY_LAST_DAILY_BACKUP = "last_daily_backup"
         const val SNAPSHOT_FILE_NAME = "backup_snapshot.db"
