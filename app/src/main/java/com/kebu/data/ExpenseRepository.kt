@@ -70,6 +70,6 @@ class ExpenseRepository(
     }
 
     companion object {
-        const val SUGGESTED_TAG_LIMIT = 5
+        const val SUGGESTED_TAG_LIMIT = 7
     }
 }
