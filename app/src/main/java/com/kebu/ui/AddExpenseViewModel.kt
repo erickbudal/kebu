@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kebu.ExpenseApplication
 import com.kebu.MAX_DESCRIPTION_LENGTH
 import com.kebu.data.DatabaseBackup
+import com.kebu.data.DisplayPreferences
 import com.kebu.data.ExpenseFilter
 import com.kebu.data.ExpenseRepository
 import com.kebu.data.Tag
@@ -50,6 +51,7 @@ data class BackupNotice(val success: Boolean, val id: Long = System.nanoTime())
 class AddExpenseViewModel(
     private val repository: ExpenseRepository,
     private val databaseBackup: DatabaseBackup,
+    private val displayPreferences: DisplayPreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddExpenseUiState())
@@ -66,6 +68,9 @@ class AddExpenseViewModel(
 
     private val _backupNotice = MutableStateFlow<BackupNotice?>(null)
     val backupNotice: StateFlow<BackupNotice?> = _backupNotice.asStateFlow()
+
+    private val _monthTotalHidden = MutableStateFlow(displayPreferences.isMonthTotalHidden())
+    val monthTotalHidden: StateFlow<Boolean> = _monthTotalHidden.asStateFlow()
 
     private var lastSavedForm: AddExpenseUiState? = null
 
@@ -142,6 +147,12 @@ class AddExpenseViewModel(
     fun closeDetail() {
         editor.close()
         detailOpen.value = false
+    }
+
+    fun toggleMonthTotalHidden() {
+        val hidden = !_monthTotalHidden.value
+        _monthTotalHidden.value = hidden
+        displayPreferences.setMonthTotalHidden(hidden)
     }
 
     fun save() {
@@ -224,7 +235,7 @@ class AddExpenseViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ExpenseApplication
-                AddExpenseViewModel(application.repository, application.databaseBackup)
+                AddExpenseViewModel(application.repository, application.databaseBackup, application.displayPreferences)
             }
         }
     }

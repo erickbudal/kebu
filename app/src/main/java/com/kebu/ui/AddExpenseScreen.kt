@@ -29,6 +29,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -54,6 +56,7 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -63,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kebu.CATEGORIES
 import com.kebu.MAX_DESCRIPTION_LENGTH
 import com.kebu.Money
+import com.kebu.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -75,6 +79,8 @@ private const val BACKUP_NOTICE_FADE_MILLIS = 300
 
 private const val TRIPLE_TAP_TIMEOUT_MILLIS = 400L
 
+private const val HIDDEN_AMOUNT = "R$ ••••"
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun AddExpenseScreen(
@@ -83,6 +89,7 @@ fun AddExpenseScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val monthTotalCents by viewModel.monthTotalCents.collectAsState()
+    val monthTotalHidden by viewModel.monthTotalHidden.collectAsState()
     val tagSuggestions by viewModel.tagSuggestions.collectAsState()
     val lastSaved by viewModel.lastSaved.collectAsState()
     val detail by viewModel.detail.collectAsState()
@@ -161,7 +168,23 @@ fun AddExpenseScreen(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text("Gasto neste mês", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(Money.format(monthTotalCents), style = MaterialTheme.typography.headlineMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (monthTotalHidden) HIDDEN_AMOUNT else Money.format(monthTotalCents),
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = viewModel::toggleMonthTotalHidden) {
+                        Icon(
+                            painter = painterResource(if (monthTotalHidden) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
+                            contentDescription = if (monthTotalHidden) "Mostrar total" else "Ocultar total",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
 
             HorizontalDivider()
