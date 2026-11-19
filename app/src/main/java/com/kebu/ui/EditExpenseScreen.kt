@@ -57,6 +57,7 @@ import com.kebu.MAX_DESCRIPTION_LENGTH
 import com.kebu.Money
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -91,11 +92,25 @@ fun EditExpenseContent(
             IconButton(onClick = editor::close) {
                 Text("‹", style = MaterialTheme.typography.headlineSmall)
             }
-            Text(
-                text = "Editar gasto",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
+            val original = state.original.expense
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Editar gasto",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "Registrado em ${formatDateTime(original.createdAt)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (original.updatedAt != original.createdAt) {
+                    Text(
+                        text = "Editado em ${formatDateTime(original.updatedAt)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             TextButton(
                 onClick = {
                     focusManager.clearFocus()
@@ -329,6 +344,11 @@ private val FULL_DATE_FORMATTER: DateTimeFormatter =
 
 private fun formatFullDate(date: LocalDate): String =
     date.format(FULL_DATE_FORMATTER).replaceFirstChar { it.uppercase() }
+
+private val DATE_TIME_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm", Locale.forLanguageTag("pt-BR"))
+
+private fun formatDateTime(dateTime: LocalDateTime): String = dateTime.format(DATE_TIME_FORMATTER)
 
 private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 
