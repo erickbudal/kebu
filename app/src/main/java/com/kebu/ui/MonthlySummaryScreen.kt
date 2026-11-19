@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -215,9 +216,10 @@ fun DetailContent(
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             ) {
+                val firstDate = byDate.keys.firstOrNull()
                 byDate.forEach { (date, expenses) ->
                     item(key = "date-$date") {
-                        DateHeader(date)
+                        DateHeader(date, showDivider = date != firstDate)
                     }
                     items(expenses, key = { it.expense.id }) { entry ->
                         ExpenseRow(entry, onClick = { editor.open(entry) })
@@ -229,13 +231,19 @@ fun DetailContent(
 }
 
 @Composable
-private fun DateHeader(date: LocalDate) {
-    Text(
-        text = formatDate(date),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-    )
+private fun DateHeader(date: LocalDate, showDivider: Boolean) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        if (showDivider) {
+            HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
+        }
+        Text(
+            text = formatDate(date),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+        )
+    }
 }
 
 @Composable
